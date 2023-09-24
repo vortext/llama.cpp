@@ -1,0 +1,5 @@
+set(TARGET grammar)
+add_library(${TARGET} SHARED grammar.cpp)
+set_target_properties(${TARGET} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(${TARGET} PRIVATE common llama ${CMAKE_THREAD_LIBS_INIT})
+target_compile_definitions(${TARGET} PRIVATE LLAMA_SHARED LLAMA_BUILD)
