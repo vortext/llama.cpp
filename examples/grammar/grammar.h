@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-  struct llama_grammar * llama_parse_grammar(const char * grammar_str);
+  struct llama_grammar * llama_cached_parse_grammar(const char * grammar_str);
 
 #ifdef __cplusplus
 }
