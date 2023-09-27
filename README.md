@@ -501,7 +501,7 @@ Building the program with BLAS support may lead to some performance improvements
     ```sh
     mkdir build
     cd build
-    cmake .. -DLLAMA_CLBLAST=ON -DCLBlast_dir=/some/path
+    cmake .. -DLLAMA_CLBLAST=ON -DCLBlast_DIR=/some/path
     cmake --build . --config Release
     ```
   - CMake (Windows):
@@ -596,6 +596,11 @@ Several quantization methods are supported. They differ in the resulting model d
 |   13B | ms/tok @ 4th |      - |    103 |    105 |    148 |    160 |    131 |
 |   13B | ms/tok @ 8th |      - |     73 |     82 |     98 |    105 |    128 |
 |   13B | bits/weight  |   16.0 |    4.5 |    5.0 |    5.5 |    6.0 |    8.5 |
+
+- [k-quants](https://github.com/ggerganov/llama.cpp/pull/1684)
+- recent k-quants improvements
+  - [#2707](https://github.com/ggerganov/llama.cpp/pull/2707)
+  - [#2807](https://github.com/ggerganov/llama.cpp/pull/2807)
 
 ### Perplexity (measuring model quality)
 
