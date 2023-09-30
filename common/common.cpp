@@ -871,6 +871,9 @@ llama_token llama_sample_token(
         const std::vector<llama_token> & last_tokens,
          std::vector<llama_token_data> & candidates,
                                    int   idx) {
+
+    LOG("idx sample_token: %d\n", idx);
+
     const int n_ctx   = llama_n_ctx(ctx);
     const int n_vocab = llama_n_vocab(ctx);
 
