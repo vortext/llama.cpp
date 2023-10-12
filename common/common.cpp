@@ -107,6 +107,7 @@ bool gpt_params_parse(int argc, char ** argv, gpt_params & params) {
     std::string arg;
     gpt_params default_params;
     const std::string arg_prefix = "--";
+    llama_sampling_params & sparams = params.sampling_params;
 
     for (int i = 1; i < argc; i++) {
         arg = argv[i];
@@ -170,7 +171,7 @@ bool gpt_params_parse(int argc, char ** argv, gpt_params & params) {
             // store the external file name in params
             params.prompt_file = argv[i];
             std::copy(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), back_inserter(params.prompt));
-            if (params.prompt.back() == '\n') {
+            if (!params.prompt.empty() && params.prompt.back() == '\n') {
                 params.prompt.pop_back();
             }
         } else if (arg == "-n" || arg == "--n-predict") {
@@ -184,7 +185,7 @@ bool gpt_params_parse(int argc, char ** argv, gpt_params & params) {
                 invalid_param = true;
                 break;
             }
-            params.top_k = std::stoi(argv[i]);
+            sparams.top_k = std::stoi(argv[i]);
         } else if (arg == "-c" || arg == "--ctx-size") {
             if (++i >= argc) {
                 invalid_param = true;
@@ -216,73 +217,73 @@ bool gpt_params_parse(int argc, char ** argv, gpt_params & params) {
                 invalid_param = true;
                 break;
             }
-            params.top_p = std::stof(argv[i]);
+            sparams.top_p = std::stof(argv[i]);
         } else if (arg == "--temp") {
             if (++i >= argc) {
                 invalid_param = true;
                 break;
             }
-            params.temp = std::stof(argv[i]);
+            sparams.temp = std::stof(argv[i]);
         } else if (arg == "--tfs") {
             if (++i >= argc) {
                 invalid_param = true;
                 break;
             }
-            params.tfs_z = std::stof(argv[i]);
+            sparams.tfs_z = std::stof(argv[i]);
         } else if (arg == "--typical") {
             if (++i >= argc) {
                 invalid_param = true;
                 break;
             }
-            params.typical_p = std::stof(argv[i]);
+            sparams.typical_p = std::stof(argv[i]);
         } else if (arg == "--repeat-last-n") {
             if (++i >= argc) {
                 invalid_param = true;
                 break;
             }
-            params.repeat_last_n = std::stoi(argv[i]);
+            sparams.repeat_last_n = std::stoi(argv[i]);
         } else if (arg == "--repeat-penalty") {
             if (++i >= argc) {
                 invalid_param = true;
                 break;
             }
-            params.repeat_penalty = std::stof(argv[i]);
+            sparams.repeat_penalty = std::stof(argv[i]);
         } else if (arg == "--frequency-penalty") {
             if (++i >= argc) {
                 invalid_param = true;
                 break;
             }
-            params.frequency_penalty = std::stof(argv[i]);
+            sparams.frequency_penalty = std::stof(argv[i]);
         } else if (arg == "--presence-penalty") {
             if (++i >= argc) {
                 invalid_param = true;
                 break;
             }
-            params.presence_penalty = std::stof(argv[i]);
+            sparams.presence_penalty = std::stof(argv[i]);
         } else if (arg == "--mirostat") {
             if (++i >= argc) {
                 invalid_param = true;
                 break;
             }
-            params.mirostat = std::stoi(argv[i]);
+            sparams.mirostat = std::stoi(argv[i]);
         } else if (arg == "--mirostat-lr") {
             if (++i >= argc) {
                 invalid_param = true;
                 break;
             }
-            params.mirostat_eta = std::stof(argv[i]);
+            sparams.mirostat_eta = std::stof(argv[i]);
         } else if (arg == "--mirostat-ent") {
             if (++i >= argc) {
                 invalid_param = true;
                 break;
             }
-            params.mirostat_tau = std::stof(argv[i]);
+            sparams.mirostat_tau = std::stof(argv[i]);
         } else if (arg == "--cfg-negative-prompt") {
             if (++i >= argc) {
                 invalid_param = true;
                 break;
             }
-            params.cfg_negative_prompt = argv[i];
+            sparams.cfg_negative_prompt = argv[i];
         } else if (arg == "--cfg-negative-prompt-file") {
             if (++i >= argc) {
                 invalid_param = true;
@@ -294,16 +295,16 @@ bool gpt_params_parse(int argc, char ** argv, gpt_params & params) {
                 invalid_param = true;
                 break;
             }
-            std::copy(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), back_inserter(params.cfg_negative_prompt));
-            if (params.cfg_negative_prompt.back() == '\n') {
-                params.cfg_negative_prompt.pop_back();
+            std::copy(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), back_inserter(sparams.cfg_negative_prompt));
+            if (!sparams.cfg_negative_prompt.empty() && sparams.cfg_negative_prompt.back() == '\n') {
+                sparams.cfg_negative_prompt.pop_back();
             }
         } else if (arg == "--cfg-scale") {
             if (++i >= argc) {
                 invalid_param = true;
                 break;
             }
-            params.cfg_scale = std::stof(argv[i]);
+            sparams.cfg_scale = std::stof(argv[i]);
         } else if (arg == "-b" || arg == "--batch-size") {
             if (++i >= argc) {
                 invalid_param = true;
@@ -383,6 +384,18 @@ bool gpt_params_parse(int argc, char ** argv, gpt_params & params) {
                 break;
             }
             params.lora_base = argv[i];
+        } else if (arg == "--mmproj") {
+            if (++i >= argc) {
+                invalid_param = true;
+                break;
+            }
+            params.mmproj = argv[i];
+        } else if (arg == "--image") {
+            if (++i >= argc) {
+                invalid_param = true;
+                break;
+            }
+            params.image = argv[i];
         } else if (arg == "-i" || arg == "--interactive") {
             params.interactive = true;
         } else if (arg == "--embedding") {
@@ -512,7 +525,7 @@ bool gpt_params_parse(int argc, char ** argv, gpt_params & params) {
         } else if (arg == "--ignore-eos") {
             params.ignore_eos = true;
         } else if (arg == "--no-penalize-nl") {
-            params.penalize_nl = false;
+            sparams.penalize_nl = false;
         } else if (arg == "-l" || arg == "--logit-bias") {
             if (++i >= argc) {
                 invalid_param = true;
@@ -524,7 +537,7 @@ bool gpt_params_parse(int argc, char ** argv, gpt_params & params) {
             std::string value_str;
             try {
                 if (ss >> key && ss >> sign && std::getline(ss, value_str) && (sign == '+' || sign == '-')) {
-                    params.logit_bias[key] = std::stof(value_str) * ((sign == '-') ? -1.0f : 1.0f);
+                    sparams.logit_bias[key] = std::stof(value_str) * ((sign == '-') ? -1.0f : 1.0f);
                 } else {
                     throw std::exception();
                 }
@@ -627,6 +640,8 @@ bool gpt_params_parse(int argc, char ** argv, gpt_params & params) {
 }
 
 void gpt_print_usage(int /*argc*/, char ** argv, const gpt_params & params) {
+    const llama_sampling_params & sparams = params.sampling_params;
+
     printf("usage: %s [options]\n", argv[0]);
     printf("\n");
     printf("options:\n");
@@ -659,19 +674,19 @@ void gpt_print_usage(int /*argc*/, char ** argv, const gpt_params & params) {
     printf("  -n N, --n-predict N   number of tokens to predict (default: %d, -1 = infinity, -2 = until context filled)\n", params.n_predict);
     printf("  -c N, --ctx-size N    size of the prompt context (default: %d, 0 = loaded from model)\n", params.n_ctx);
     printf("  -b N, --batch-size N  batch size for prompt processing (default: %d)\n", params.n_batch);
-    printf("  --top-k N             top-k sampling (default: %d, 0 = disabled)\n", params.top_k);
-    printf("  --top-p N             top-p sampling (default: %.1f, 1.0 = disabled)\n", (double)params.top_p);
-    printf("  --tfs N               tail free sampling, parameter z (default: %.1f, 1.0 = disabled)\n", (double)params.tfs_z);
-    printf("  --typical N           locally typical sampling, parameter p (default: %.1f, 1.0 = disabled)\n", (double)params.typical_p);
-    printf("  --repeat-last-n N     last n tokens to consider for penalize (default: %d, 0 = disabled, -1 = ctx_size)\n", params.repeat_last_n);
-    printf("  --repeat-penalty N    penalize repeat sequence of tokens (default: %.1f, 1.0 = disabled)\n", (double)params.repeat_penalty);
-    printf("  --presence-penalty N  repeat alpha presence penalty (default: %.1f, 0.0 = disabled)\n", (double)params.presence_penalty);
-    printf("  --frequency-penalty N repeat alpha frequency penalty (default: %.1f, 0.0 = disabled)\n", (double)params.frequency_penalty);
+    printf("  --top-k N             top-k sampling (default: %d, 0 = disabled)\n", sparams.top_k);
+    printf("  --top-p N             top-p sampling (default: %.1f, 1.0 = disabled)\n", (double)sparams.top_p);
+    printf("  --tfs N               tail free sampling, parameter z (default: %.1f, 1.0 = disabled)\n", (double)sparams.tfs_z);
+    printf("  --typical N           locally typical sampling, parameter p (default: %.1f, 1.0 = disabled)\n", (double)sparams.typical_p);
+    printf("  --repeat-last-n N     last n tokens to consider for penalize (default: %d, 0 = disabled, -1 = ctx_size)\n", sparams.repeat_last_n);
+    printf("  --repeat-penalty N    penalize repeat sequence of tokens (default: %.1f, 1.0 = disabled)\n", (double)sparams.repeat_penalty);
+    printf("  --presence-penalty N  repeat alpha presence penalty (default: %.1f, 0.0 = disabled)\n", (double)sparams.presence_penalty);
+    printf("  --frequency-penalty N repeat alpha frequency penalty (default: %.1f, 0.0 = disabled)\n", (double)sparams.frequency_penalty);
     printf("  --mirostat N          use Mirostat sampling.\n");
     printf("                        Top K, Nucleus, Tail Free and Locally Typical samplers are ignored if used.\n");
-    printf("                        (default: %d, 0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0)\n", params.mirostat);
-    printf("  --mirostat-lr N       Mirostat learning rate, parameter eta (default: %.1f)\n", (double)params.mirostat_eta);
-    printf("  --mirostat-ent N      Mirostat target entropy, parameter tau (default: %.1f)\n", (double)params.mirostat_tau);
+    printf("                        (default: %d, 0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0)\n", sparams.mirostat);
+    printf("  --mirostat-lr N       Mirostat learning rate, parameter eta (default: %.1f)\n", (double)sparams.mirostat_eta);
+    printf("  --mirostat-ent N      Mirostat target entropy, parameter tau (default: %.1f)\n", (double)sparams.mirostat_tau);
     printf("  -l TOKEN_ID(+/-)BIAS, --logit-bias TOKEN_ID(+/-)BIAS\n");
     printf("                        modifies the likelihood of token appearing in the completion,\n");
     printf("                        i.e. `--logit-bias 15043+1` to increase likelihood of token ' Hello',\n");
@@ -682,7 +697,7 @@ void gpt_print_usage(int /*argc*/, char ** argv, const gpt_params & params) {
     printf("                        negative prompt to use for guidance. (default: empty)\n");
     printf("  --cfg-negative-prompt-file FNAME\n");
     printf("                        negative prompt file to use for guidance. (default: empty)\n");
-    printf("  --cfg-scale N         strength of guidance (default: %f, 1.0 = disable)\n", params.cfg_scale);
+    printf("  --cfg-scale N         strength of guidance (default: %f, 1.0 = disable)\n", sparams.cfg_scale);
     printf("  --rope-scale N        RoPE context linear scaling factor, inverse of --rope-freq-scale\n");
     printf("  --rope-freq-base N    RoPE base frequency, used by NTK-aware scaling (default: loaded from model)\n");
     printf("  --rope-freq-scale N   RoPE frequency linear scaling factor (default: loaded from model)\n");
@@ -690,7 +705,7 @@ void gpt_print_usage(int /*argc*/, char ** argv, const gpt_params & params) {
     printf("  --no-penalize-nl      do not penalize newline token\n");
     printf("  --memory-f32          use f32 instead of f16 for memory key+value (default: disabled)\n");
     printf("                        not recommended: doubles context memory required and no measurable increase in quality\n");
-    printf("  --temp N              temperature (default: %.1f)\n", (double)params.temp);
+    printf("  --temp N              temperature (default: %.1f)\n", (double)sparams.temp);
     printf("  --logits-all          return logits for all tokens in the batch (default: disabled)\n");
     printf("  --hellaswag           compute HellaSwag score over random tasks from datafile supplied with -f\n");
     printf("  --hellaswag-tasks N   number of tasks to use when computing the HellaSwag score (default: %zu)\n", params.hellaswag_tasks);
@@ -700,6 +715,8 @@ void gpt_print_usage(int /*argc*/, char ** argv, const gpt_params & params) {
     printf("  -np N, --parallel N   number of parallel sequences to decode (default: %d)\n", params.n_parallel);
     printf("  -ns N, --sequences N  number of sequences to decode (default: %d)\n", params.n_sequences);
     printf("  -cb, --cont-batching  enable continuous batching (a.k.a dynamic batching) (default: disabled)\n");
+    printf("  --mmproj MMPROJ_FILE  path to a multimodal projector file for LLaVA. see examples/llava/README.md\n");
+    printf("  --image IMAGE_FILE    path to an image file. use with multimodal models\n");
     if (llama_mlock_supported()) {
         printf("  --mlock               force system to keep model in RAM rather than swapping or compressing\n");
     }
@@ -840,7 +857,7 @@ std::tuple<struct llama_model *, struct llama_context *> llama_init_from_gpt_par
     }
 
     if (params.ignore_eos) {
-        params.logit_bias[llama_token_eos(lctx)] = -INFINITY;
+        params.sampling_params.logit_bias[llama_token_eos(lctx)] = -INFINITY;
     }
 
     {
@@ -1207,6 +1224,8 @@ std::string get_sortable_timestamp() {
 
 void dump_non_result_info_yaml(FILE * stream, const gpt_params & params, const llama_context * lctx,
                                const std::string & timestamp, const std::vector<int> & prompt_tokens, const char * model_desc) {
+    const llama_sampling_params & sparams = params.sampling_params;
+
     fprintf(stream, "build_commit: %s\n", BUILD_COMMIT);
     fprintf(stream, "build_number: %d\n", BUILD_NUMBER);
     fprintf(stream, "cpu_has_arm_fma: %s\n", ggml_cpu_has_arm_fma() ? "true" : "false");
@@ -1253,21 +1272,21 @@ void dump_non_result_info_yaml(FILE * stream, const gpt_params & params, const l
 
     fprintf(stream, "alias: %s # default: unknown\n", params.model_alias.c_str());
     fprintf(stream, "batch_size: %d # default: 512\n", params.n_batch);
-    dump_string_yaml_multiline(stream, "cfg_negative_prompt", params.cfg_negative_prompt.c_str());
-    fprintf(stream, "cfg_scale: %f # default: 1.0\n", params.cfg_scale);
+    dump_string_yaml_multiline(stream, "cfg_negative_prompt", sparams.cfg_negative_prompt.c_str());
+    fprintf(stream, "cfg_scale: %f # default: 1.0\n", sparams.cfg_scale);
     fprintf(stream, "chunks: %d # default: -1 (unlimited)\n", params.n_chunks);
     fprintf(stream, "color: %s # default: false\n", params.use_color ? "true" : "false");
     fprintf(stream, "ctx_size: %d # default: 512\n", params.n_ctx);
     fprintf(stream, "escape: %s # default: false\n", params.escape ? "true" : "false");
     fprintf(stream, "file: # never logged, see prompt instead. Can still be specified for input.\n");
-    fprintf(stream, "frequency_penalty: %f # default: 0.0 \n", params.frequency_penalty);
+    fprintf(stream, "frequency_penalty: %f # default: 0.0 \n", sparams.frequency_penalty);
     dump_string_yaml_multiline(stream, "grammar", params.grammar.c_str());
     fprintf(stream, "grammar-file: # never logged, see grammar instead. Can still be specified for input.\n");
     fprintf(stream, "hellaswag: %s # default: false\n", params.hellaswag ? "true" : "false");
     fprintf(stream, "hellaswag_tasks: %zu # default: 400\n", params.hellaswag_tasks);
 
-    const auto logit_bias_eos = params.logit_bias.find(llama_token_eos(lctx));
-    const bool ignore_eos = logit_bias_eos != params.logit_bias.end() && logit_bias_eos->second == -INFINITY;
+    const auto logit_bias_eos = sparams.logit_bias.find(llama_token_eos(lctx));
+    const bool ignore_eos = logit_bias_eos != sparams.logit_bias.end() && logit_bias_eos->second == -INFINITY;
     fprintf(stream, "ignore_eos: %s # default: false\n", ignore_eos ? "true" : "false");
 
     dump_string_yaml_multiline(stream, "in_prefix", params.input_prefix.c_str());
@@ -1280,7 +1299,7 @@ void dump_non_result_info_yaml(FILE * stream, const gpt_params & params, const l
     fprintf(stream, "logdir: %s # default: unset (no logging)\n", params.logdir.c_str());
 
     fprintf(stream, "logit_bias:\n");
-    for (std::pair<llama_token, float> lb : params.logit_bias) {
+    for (std::pair<llama_token, float> lb : sparams.logit_bias) {
         if (ignore_eos && lb.first == logit_bias_eos->first) {
             continue;
         }
@@ -1304,30 +1323,30 @@ void dump_non_result_info_yaml(FILE * stream, const gpt_params & params, const l
     fprintf(stream, "lora_base: %s\n", params.lora_base.c_str());
     fprintf(stream, "main_gpu: %d # default: 0\n", params.main_gpu);
     fprintf(stream, "memory_f32: %s # default: false\n", !params.memory_f16 ? "true" : "false");
-    fprintf(stream, "mirostat: %d # default: 0 (disabled)\n", params.mirostat);
-    fprintf(stream, "mirostat_ent: %f # default: 5.0\n", params.mirostat_tau);
-    fprintf(stream, "mirostat_lr: %f # default: 0.1\n", params.mirostat_eta);
+    fprintf(stream, "mirostat: %d # default: 0 (disabled)\n", sparams.mirostat);
+    fprintf(stream, "mirostat_ent: %f # default: 5.0\n", sparams.mirostat_tau);
+    fprintf(stream, "mirostat_lr: %f # default: 0.1\n", sparams.mirostat_eta);
     fprintf(stream, "mlock: %s # default: false\n", params.use_mlock ? "true" : "false");
     fprintf(stream, "model: %s # default: models/7B/ggml-model.bin\n", params.model.c_str());
     fprintf(stream, "model_draft: %s # default:\n", params.model_draft.c_str());
     fprintf(stream, "multiline_input: %s # default: false\n", params.multiline_input ? "true" : "false");
     fprintf(stream, "n_gpu_layers: %d # default: -1\n", params.n_gpu_layers);
     fprintf(stream, "n_predict: %d # default: -1 (unlimited)\n", params.n_predict);
-    fprintf(stream, "n_probs: %d # only used by server binary, default: 0\n", params.n_probs);
+    fprintf(stream, "n_probs: %d # only used by server binary, default: 0\n", sparams.n_probs);
     fprintf(stream, "no_mmap: %s # default: false\n", !params.use_mmap ? "true" : "false");
     fprintf(stream, "no_mul_mat_q: %s # default: false\n", !params.mul_mat_q ? "true" : "false");
-    fprintf(stream, "no_penalize_nl: %s # default: false\n", !params.penalize_nl ? "true" : "false");
+    fprintf(stream, "no_penalize_nl: %s # default: false\n", !sparams.penalize_nl ? "true" : "false");
     fprintf(stream, "numa: %s # default: false\n", params.numa ? "true" : "false");
     fprintf(stream, "ppl_output_type: %d # default: 0\n", params.ppl_output_type);
     fprintf(stream, "ppl_stride: %d # default: 0\n", params.ppl_stride);
-    fprintf(stream, "presence_penalty: %f # default: 0.0\n", params.presence_penalty);
+    fprintf(stream, "presence_penalty: %f # default: 0.0\n", sparams.presence_penalty);
     dump_string_yaml_multiline(stream, "prompt", params.prompt.c_str());
     fprintf(stream, "prompt_cache: %s\n", params.path_prompt_cache.c_str());
     fprintf(stream, "prompt_cache_all: %s # default: false\n", params.prompt_cache_all ? "true" : "false");
     fprintf(stream, "prompt_cache_ro: %s # default: false\n", params.prompt_cache_ro ? "true" : "false");
     dump_vector_int_yaml(stream, "prompt_tokens", prompt_tokens);
     fprintf(stream, "random_prompt: %s # default: false\n", params.random_prompt ? "true" : "false");
-    fprintf(stream, "repeat_penalty: %f # default: 1.1\n", params.repeat_penalty);
+    fprintf(stream, "repeat_penalty: %f # default: 1.1\n", sparams.repeat_penalty);
 
     fprintf(stream, "reverse_prompt:\n");
     for (std::string ap : params.antiprompt) {
@@ -1345,15 +1364,15 @@ void dump_non_result_info_yaml(FILE * stream, const gpt_params & params, const l
     fprintf(stream, "seed: %d # default: -1 (random seed)\n", params.seed);
     fprintf(stream, "simple_io: %s # default: false\n", params.simple_io ? "true" : "false");
     fprintf(stream, "cont_batching: %s # default: false\n", params.cont_batching ? "true" : "false");
-    fprintf(stream, "temp: %f # default: 0.8\n", params.temp);
+    fprintf(stream, "temp: %f # default: 0.8\n", sparams.temp);
 
     const std::vector<float> tensor_split_vector(params.tensor_split, params.tensor_split + LLAMA_MAX_DEVICES);
     dump_vector_float_yaml(stream, "tensor_split", tensor_split_vector);
 
-    fprintf(stream, "tfs: %f # default: 1.0\n", params.tfs_z);
+    fprintf(stream, "tfs: %f # default: 1.0\n", sparams.tfs_z);
     fprintf(stream, "threads: %d # default: %d\n", params.n_threads, std::thread::hardware_concurrency());
-    fprintf(stream, "top_k: %d # default: 40\n", params.top_k);
-    fprintf(stream, "top_p: %f # default: 0.95\n", params.top_p);
-    fprintf(stream, "typical_p: %f # default: 1.0\n", params.typical_p);
+    fprintf(stream, "top_k: %d # default: 40\n", sparams.top_k);
+    fprintf(stream, "top_p: %f # default: 0.95\n", sparams.top_p);
+    fprintf(stream, "typical_p: %f # default: 1.0\n", sparams.typical_p);
     fprintf(stream, "verbose_prompt: %s # default: false\n", params.verbose_prompt ? "true" : "false");
 }
